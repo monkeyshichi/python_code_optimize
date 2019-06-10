@@ -1,6 +1,6 @@
 转载自 微信公众号 Python数据之道
 
-#如何正确使用Pandas库提升项目的运行速度？
+# 如何正确使用Pandas库提升项目的运行速度？
 
 如果你从事大数据工作，用Python的Pandas库时会发现很多惊喜。Pandas在数据科学和分析领域扮演越来越重要的角色，尤其是对于从Excel和VBA转向Python的用户。
  
@@ -20,7 +20,7 @@
 
 在使用Pandas时，使用纯“python”式代码并不是最效率的选择。和NumPy一样，Pandas专为向量化操作而设计，它可在一次扫描中完成对整列或者数据集的操作。而单独处理每个单元格或某一行这种遍历的行为，应该作为备用选择。
 
-#本教程
+# 本教程
 
 先说明下，本教程不是引导如何过度优化Pandas代码。因为Pandas在正确的使用下已经很快了。此外，优化代码和编写清晰的代码之间的差异是巨大的。
  
@@ -40,7 +40,7 @@ Github 源码见文末【1】
 【工具】
 Python 3、Pandas 0.23.1
 
-#任务
+# 任务
 
 本例使用能源消耗的时间序列数据计算一年能源的总成本。由于不同时间段的电价不同，因此需要将各时段的耗电量乘上对应时段的电价。 
 
@@ -49,7 +49,7 @@ Python 3、Pandas 0.23.1
 ![testpic](https://github.com/monkeyshichi/python_code_optimize/blob/master/python_speedup_codesample/imgfolder/tb1.png)
 
 每行数据中都包含每小时耗电量数据，因此整年会产生8760（356×24）行数据。每行的小时数据表示计算的开始时间，因此1/1/13 0：00的数据指1月1号第1个小时的耗电量数据。 
-#用Datetime类节省时间 
+# 用Datetime类节省时间 
 首先用Pandas的一个I/O函数读取CSV文件：
 ```
 >>> import pandas as pd
@@ -129,7 +129,7 @@ Function `convert_with_format` ran in average of 0.032 seconds.
 
 【注】Pandas的read_csv()方法也提供了解析时间的参数。详见parse_dates，infer_datetime_format，和date_parser参数。 
 
-#遍历
+# 遍历
 日期时间已经完成格式化，现在准备开始计算电费了。由于每个时段的电价不同，因此需要将对应的电价映射到各个时段。此例中，电价收费标准如下：
 ![testpic](https://github.com/monkeyshichi/python_code_optimize/blob/master/python_speedup_codesample/imgfolder/tb2.png)
 
@@ -203,7 +203,7 @@ Function `apply_tariff_loop` ran in average of 3.152 seconds.
 
 这种遍历方式最大的问题在于计算的时间成本。对于8760行数据，花了3秒钟完成遍历。下面，来看看一些基于Pandas数据结构的迭代方案。
 
-#用.itertuples()和.iterrow()遍历
+# 用.itertuples()和.iterrow()遍历
 
 还有其他办法吗？
 
@@ -236,7 +236,7 @@ Function `apply_tariff_iterrows` ran in average of 0.713 seconds.
 
 但是，仍然有很大的改进空间。由于仍然在使用for遍历，意味着每循环一次都需要调用一次函数，而这些本可以在速度更快的Pandas内置架构中完成。
 
-#Pandas的.apply()
+# Pandas的.apply()
 可以用.apply()方法替代.iterrows()方法提升效率。Pandas的.apply()方法可以传入可调用的函数并且应用于DataFrame的轴上，即所有行或列。此例中，借助lambda功能将两列数据传入apply_tariff()：
 
 ```
@@ -259,7 +259,7 @@ Function `apply_tariff_withapply` ran in average of 0.272 seconds.
 
 如果使用.apply()在330个站点的10年数据上，这大概得花15分钟的处理时间。假如这个计算仅仅是一个大型模型的一小部分，那么还需要更多的提升。下面的向量化操作可以做到这点。
 
-#用.isin()筛选数据
+# 用.isin()筛选数据
 之前看到的如果只有单一电价，可以将所有电力消耗数据乘以该价格df['energy_kwh'] * 28。这种操作就是一种向量化操作的一个用例，这是Pandas中最快的方式。 
 
 但是，在Pandas中如何将有条件的计算应用在向量化操作中呢？一种方法是，根据条件将DataFrame进行筛选并分组和切片，然后对每组数据进行对应的向量化操作。 
@@ -301,7 +301,7 @@ Function `apply_tariff_isin` ran in average of 0.010 seconds.
 
 在速度方面，比普通的遍历快了315倍，比.iterrows()方法快了71倍，且比.apply()方法快了27倍。现在可以快速的处理大数据集了。
 
-#还有提升空间吗？
+# 还有提升空间吗？
 
 在apply_tariff_isin()中，需要手动调用三次df.loc和df.index.hour.isin()。比如24小时每个小时的费率不同，这意味着需要手动调用24次.isin()方法，所以这种方案通常不具有扩展性。幸运的是，还可以使用Pandas的pd.cut()功能： 
 ```
@@ -326,7 +326,7 @@ Function `apply_tariff_cut` ran in average of 0.003 seconds.
 ```
 至此，现在可以将330个站点的数据处理时间从88分钟缩小到只需不到1秒。但是，还有最后一个选择，就是使用NumPy库来操作DataFrame下的每个NumPy数组，然后将处理结果集成回DataFrame数据结构中。
 
-#还有NumPy！
+# 还有NumPy！
 
 别忘了Pandas的Series和DataFrame是在NumPy库的基础上设计的。这提供了更多的灵活性，因为Pandas和NumPy数组可以无缝操作。 
 
@@ -368,7 +368,7 @@ Pandas可以提供很多批量处理数据方法的备用选项，这些已经在上边都一一演示过了。这里
 
 ![testpic](https://github.com/monkeyshichi/python_code_optimize/blob/master/python_speedup_codesample/imgfolder/tb3.png)
 
-#用HDFstore存储预处理数据
+# 用HDFstore存储预处理数据
 
 已经了解了用Pandas快速处理数据，现在我们需要探讨如何避免重复的数据处理过程。这里使用了Pandas内置的HDFStore方法。 
 
@@ -408,7 +408,7 @@ data_store.close()
 pip install --upgrade tables
 ```
 
-#总结
+# 总结
 	
 如果觉得你的Pandas项目不具备速度快、灵活、简单且直观的特征，那么该重新思考使用该库的方式了。
  
