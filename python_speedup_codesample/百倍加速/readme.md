@@ -5,6 +5,7 @@
 接下来要用的例子相信几乎所有做量化策略的人都写过类似的代码：对时间序列求算术移动平均值。
 
 这里我们先初始化即将用到的数据：10万个数据点（随机整数），遍历计算窗口为500的算术移动平均值，每种算法运行10次求平均耗时。
+```
 # 这个测试目标在于仿造一个类似于实盘中，不断有新的数据推送过来，
 # 然后需要计算移动平均线数值，这么一个比较常见的任务。
 
@@ -20,13 +21,15 @@ test_times = 10         # 测试次数
 
 for i in range(data_length):
     data.append(random.randint(1, 100))
-
+```
 在每次测试中，我们都通过遍历测试用数据的方式来模拟实盘中策略不断收到新数据推送的情况（同样适用于事件驱动的回测模式），将计算出的移动平均值不断保存到一个列表list中作为最终结果返回。
 
 测试用电脑的配置情况：Core i7-6700K 4.0G/16G/Windows 7。
 
 第一步我们以最简单、最原始的方式来计算移动平均值：
+```
 # 计算500期的移动均线，并将结果保存到一个列表里返回
+
 def ma_basic(data, ma_length):
 
     # 用于保存均线输出结果的列表
@@ -65,7 +68,7 @@ time_per_point = time_per_test/(data_length - ma_length)
 print u'单次耗时：%s秒' %time_per_test
 print u'单个数据点耗时：%s微秒' %(time_per_point*1000000)
 print u'最后10个移动平均值：', result[-10:]
-
+```
 单次耗时指的是遍历完整个测试数据计算移动平均值所需的时间，单个数据点耗时指的是遍历过程中每个数据点的平均计算耗时，最后10个移动平均值用于和后续的算法进行比对，保证计算结果的正确性。
 
 ma_basic测试结果
@@ -78,7 +81,9 @@ ma_basic测试结果
 
 试试NumPy？
 用Python做数值运算性能不够的时候，很多人的第一反应就是上NumPy：之前的ma_basic里，比较慢的地方应该在每一个新的数据点加入到data_window中后遍历求平均值的代码，那么改用numpy.array数组来求和应该性能就会有所提升了吧？
+```
 # 改用numpy（首先是一种常见的错误用法）
+
 import numpy as np
 
 def ma_numpy_wrong(data, ma_length):
@@ -96,7 +101,7 @@ def ma_numpy_wrong(data, ma_length):
         ma.append(data_array.mean())
 
     return ma
-
+```
 ma_numpy_wrong测试结果
 
     单次耗时：2.11879999638秒
@@ -108,7 +113,9 @@ data_array = np.array(data_window)
 由于NumPy中的对象大多实现得比较复杂（提供了丰富的功能），所以其对象创建和销毁的开销都非常大。上面的这句代码意味着在计算每一个新数据点时，都要创建一个新的array对象，并且仅使用一次后就会销毁，使用array.mean方法求均值带来的性能提升还比不上array对象创建和销毁带来的额外开销。
 
 正确的用法是把np.array作为data_window时间序列的容器，每计算一个新的数据点时，使用底层数据偏移来实现数据更新：
+```
 # numpy的正确用法
+
 def ma_numpy_right(data, ma_length):
     ma = []
 
@@ -124,7 +131,8 @@ def ma_numpy_right(data, ma_length):
         ma.append(data_window.mean())
 
     return ma
- ma_numpy_right测试结果
+```
+ma_numpy_right测试结果
 
     单次耗时：0.614300012589秒
     单个数据点耗时：6.17386947325微秒
@@ -133,6 +141,7 @@ JIT神器：Numba
 关心过Python性能的朋友应该都听过PyPy的大名，通过重新设计的Python解释器，PyPy内建的JIT技术号称可以将Python程序的速度提高几十倍（相比于CPython），可惜由于兼容性的问题并不适合于量化策略开发这一领域。
 
 幸运的是，我们还有Anaconda公司推出的Numba。Numba允许用户使用基于LLVM的JIT技术，对程序内想要提高性能的部分（函数）进行局部优化。同时Numba在设计理念上更加务实：可以直接在CPython中使用，和其他常用的Python模块的兼容性良好，并且最爽的是使用方法傻瓜到了极点：
+```
 # 使用numba加速，ma_numba函数和ma_basic完全一样
 import numba
 
@@ -151,6 +160,7 @@ for new_tick in test_data:
     ma.append(sum_tick/ma_length)
 
 return ma
+```
 ma_numba测试结果
     单次耗时：0.043700003624秒
     单个数据点耗时：0.439196016321微秒
@@ -158,6 +168,7 @@ OMG！就加了一行@numba.jit，性能竟然提高了26倍！这估计是按�
 
 改写算法
 从编程哲学的角度来看，想提高计算机程序的速度，一个最基本的原则就是降低算法复杂度。看到这里估计早就有量化老手ma_basic不爽了，弄个复杂度O(N)的算法来算平均值，就不能缓存下求和的结果，把复杂度降低到O(1)么？
+```
 # 将均线计算改写为高速算法
 def ma_online(data, ma_length):
     ma = []
@@ -186,13 +197,14 @@ def ma_online(data, ma_length):
             ma.append(sum_buffer/ma_length)
 
     return ma
-
+```
 ma_online测试结果
 
     单次耗时：0.0348000049591秒
     单个数据点耗时：0.349748793559微秒
 哲学果然才是最强大的力量！！！
 改写算法后的ma_online无需JIT就超越了ma_numba，将性能提高到了33倍（对比ma_basic），如果再把numba加上会如何？
+```
 # 高速算法和numba结合，ma_online_numba函数和ma_online完全一样
 @numba.jit
 def ma_online_numba(data, ma_length):
@@ -217,6 +229,7 @@ def ma_online_numba(data, ma_length):
             ma.append(sum_buffer/ma_length)
 
     return ma
+```
 ma_online_numba测试结果
 
     单次耗时：0.0290000200272秒
@@ -229,6 +242,7 @@ ma_online_numba测试结果
 好在Python社区对于偷懒的追求是永无止境的，Cython这一终极武器应运而生。关于Cython的详细介绍可以去官网看，简单来它的主要作用就是允许用户以非常接近Python的语法来实现非常接近C的性能。
 
 先来试试最简单的方法：完全不修改任何代码，只是把函数放到.pyx文件里，调用Cython编译成.pyd扩展模块。
+```
 # 基础的cython加速
 def ma_cython(data, ma_length):
     ma = []
@@ -245,6 +259,7 @@ def ma_cython(data, ma_length):
         ma.append(sum_tick/ma_length)
 
     return ma
+```
 ma_cython测试结果
 
     单次耗时：0.600800013542秒
@@ -252,6 +267,7 @@ ma_cython测试结果
 ma_cython和ma_basic的代码完全相同，简单使用Cython编译后性能提高了大约1倍，不过这和之前我们已经达成的优化效果比可以说是毫无吸引力。
 
 Cython官方的Quick Start里，第一步是教会用户如何去编译程序，第二步就是如何使用静态声明来大幅提高性能，所以我们的下一步就是：静态声明+高速算法。
+```
 # cython和高速算法
 def ma_cython_online(data, ma_length):
     # 静态声明变量
@@ -278,6 +294,7 @@ def ma_cython_online(data, ma_length):
             ma.append(sum_buffer/ma_length)
 
     return ma
+```
 ma_cython_online测试结果
 
     单次耗时：0.00980000495911秒
@@ -285,9 +302,9 @@ ma_cython_online测试结果
 117倍！！！比ma_online_numba的速度还提高了接近3倍，98纳秒的计算速度已经足以满足大部分毫秒级别高频策略的延时需求。
 
 主要的功臣是这行：
-
+```
 cdef int sum_buffer, sum_tick, old_tick, new_tick
-
+```
 把函数中用到的变量静态声明成int类型后，Cython在编译时无需再考虑Python对象的动态性特点，可以把整个函数高度优化成类似静态语言的实现，从而达到了接近C语言的运行性能，再加上复杂度O(1)的高速算法，有这个级别的性能提升也就不足为奇了。
 
 附上简单的Cython使用指南：
