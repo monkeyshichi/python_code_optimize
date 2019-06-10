@@ -1,0 +1,13 @@
+转载自微信公众号 稀牛学院
+虽然python的多进程已经得到了广泛的应用，但在本文中，我们将证明它不适用的几个重要应用程序类，其中包括数值数据处理、状态计算和具有昂贵初始化的计算。
+
+不适用原因：
+    数值数据处理效率低下
+    缺乏抽象化的状态计算（无法在独立的“任务”之间共享变量）
+
+Ray是一个快速、简单的框架，用于构建和运行解决这些问题的分布式应用程序。Ray利用ApacheArrow进行高效的数据处理，并为分布式计算提供task和actor的抽象概念。
+
+本文对三种不易用Python多进程表示的工作量进行了基准测试，并对Ray、Python多进程和串行Python代码进行了比较。请注意，务必与优化的单线程代码进行比较。
+
+在这些基准测试中，Ray比串行Python快10-30倍，比多进程快5-25倍，比大型机器上这两种方法快5-15倍。
+![testpic](https://github.com/monkeyshichi/python_code_optimize/blob/master/python_speedup_codesample/%E4%B8%8D%E7%94%A8%E5%A4%9A%E8%BF%9B%E7%A8%8B%E7%9A%84Python%E5%8D%81%E5%80%8D%E9%80%9F%E5%B9%B6%E8%A1%8C%E6%8A%80%E5%B7%A7/img-folder/1560148087.jpg)
