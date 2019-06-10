@@ -1,2 +1,0 @@
-#hhhhhh
-print("ddddd")
