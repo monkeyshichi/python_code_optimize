@@ -1,4 +1,3 @@
-转载自 微信公众号 Python数据之道
 
 # 如何正确使用Pandas库提升项目的运行速度？
 
@@ -426,6 +425,11 @@ pip install --upgrade tables
 
 ⑥ 在Pandas项目中，利用NumPy可以提高速度同时简化语法。
 
+
 【参考链接】
 https://github.com/realpython/materials/tree/master/pandas-fast-flexible-intuitive【1】
 https://realpython.com/fast-flexible-pandas/
+
+转载自 微信公众号 Python数据之道
+
+若有侵权,请告知删除
